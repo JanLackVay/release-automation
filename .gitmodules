@@ -1,0 +1,3 @@
+[submodule "ree-drive"]
+	path = ree-drive
+	url = git@github.com:Reemote/ree-drive.git

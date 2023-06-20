@@ -1,0 +1,22 @@
+software_version: 
+release_configuration:
+    config: gamma
+    vehicle:
+      safety_controller:
+        reecu:
+          vReecu: 
+          hw:
+          fw:
+          gw:
+      performance_controller:
+        drive_os:
+    telestation:
+      safety_controller:
+        reecu:
+          vReecu: 
+          hw:
+          fw:
+          gw:
+      performance_controller:
+        os:
+
