@@ -1,3 +1,9 @@
 [submodule "ree-drive"]
 	path = ree-drive
 	url = git@github.com:Reemote/ree-drive.git
+[submodule "submodules/ree-drive"]
+	path = submodules/ree-drive
+	url = git@github.com:Reemote/ree-drive.git
+[submodule "submodules/ree-reecu"]
+	path = submodules/ree-reecu
+	url = git@github.com:Reemote/ree-reecu.git
