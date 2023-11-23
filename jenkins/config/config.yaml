@@ -1,0 +1,17 @@
+testbed_validation:
+  jenkins_url: "http://jenkins-ber.reeinfra.net/view/Main%20Testbed%20Queues/"
+  job_name: "job/release-testbed-validation-gamma"
+
+deployment:
+  jenkins_url: "http://conveyor.reeinfra.net/"
+  job_name: "job/v-drive-software-deployment/buildWithParameters"
+  parameters:
+    VERSION:
+    CONFIG_REVISION: "main"
+    CONFIG_OVERRIDES_REVISION: "default"
+    CAMERA_CONFIG_REVISION: "main"
+    USE_EXTERNAL_DISK_ON_VEHICLE_B: "false"
+
+long_test_config:
+  jenkins_url: "http://jenkins-ber.reeinfra.net/view/Release%20Trigger%20Jobs/"
+  job_name: "job/trigger-long-gamma-test-release/configSubmit"
