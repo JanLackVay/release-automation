@@ -30,7 +30,7 @@ def main():
     print(list_of_builds)
 
 
-def get_credentials() -> json:
+def get_credentials():
     current_dir = os.getcwd()
     with open(pathlib.Path(f"{current_dir}/../credentials/credentials.yaml"), "r") as f:
         credentials = yaml.safe_load(f)

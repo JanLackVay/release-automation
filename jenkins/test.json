@@ -1,0 +1,134 @@
+{
+    "enable": false,
+    "description": "<!-- Managed by Jenkins Job Builder -->",
+    "properties": {
+        "stapler-class-bag": "true",
+        "jenkins-model-BuildDiscarderProperty": {
+            "specified": false,
+            "": "0",
+            "strategy": {
+                "daysToKeepStr": "",
+                "numToKeepStr": "",
+                "artifactDaysToKeepStr": "",
+                "artifactNumToKeepStr": "",
+                "stapler-class": "hudson.tasks.LogRotator",
+                "$class": "hudson.tasks.LogRotator"
+            }
+        },
+        "org-jenkinsci-plugins-workflow-job-properties-DisableConcurrentBuildsJobProperty": {
+            "specified": true,
+            "abortPrevious": false
+        },
+        "org-jenkinsci-plugins-workflow-job-properties-DisableResumeJobProperty": {
+            "specified": false
+        },
+        "org-jenkinsci-plugins-workflow-job-properties-DurabilityHintJobProperty": {
+            "specified": false,
+            "hint": "MAX_SURVIVABILITY"
+        },
+        "org-jenkinsci-plugins-pipeline-modeldefinition-properties-PreserveStashesJobProperty": {
+            "specified": false,
+            "buildCount": "1"
+        },
+        "hudson-model-ParametersDefinitionProperty": {
+            "specified": true,
+            "parameterDefinitions": [
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "BUILD_JOB",
+                    "defaultValue": "release-testbed-validation-gamma",
+                    "description": "",
+                    "trim": false
+                },
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "VERSION",
+                    "defaultValue": "v52.0.12",
+                    "description": "",
+                    "trim": false
+                },
+                {
+                    "stapler-class": "hudson.model.ChoiceParameterDefinition",
+                    "$class": "hudson.model.ChoiceParameterDefinition",
+                    "name": "HARDWARE_REVISION",
+                    "choices": "gamma",
+                    "description": ""
+                },
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "CONFIG_REVISION",
+                    "defaultValue": "main",
+                    "description": "",
+                    "trim": false
+                },
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "LONG_TEST",
+                    "defaultValue": "True",
+                    "description": "",
+                    "trim": false
+                },
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "RUN_NSIGHT_PROFILER",
+                    "defaultValue": "False",
+                    "description": "",
+                    "trim": false
+                },
+                {
+                    "stapler-class": "hudson.model.StringParameterDefinition",
+                    "$class": "hudson.model.StringParameterDefinition",
+                    "name": "RUN_TELEMETRY_E2E_TEST",
+                    "defaultValue": "True",
+                    "description": "",
+                    "trim": false
+                }
+            ]
+        },
+        "jenkins-branch-RateLimitBranchProperty$JobPropertyImpl": {},
+        "org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty": {
+            "triggers": {
+                "stapler-class-bag": "true",
+                "hudson-triggers-TimerTrigger": {
+                    "spec": "TZ=Etc/UTC\n5 1,4,7,10,13,16,19,22 * * *"
+                }
+            }
+        }
+    },
+    "hasCustomQuietPeriod": false,
+    "quiet_period": "5",
+    "displayNameOrNull": "Release: Trigger long Gamma test",
+    "": "1",
+    "definition": {
+        "": "0",
+        "scm": {
+            "userRemoteConfigs": {
+                "url": "git@github.com:Reemote/ree-drive.git",
+                "includeUser": "false",
+                "credentialsId": "SSH_PRIVATE_KEY_CLONE",
+                "name": "origin",
+                "refspec": "+refs/heads/*:refs/remotes/origin/*"
+            },
+            "branches": {
+                "name": "$VERSION"
+            },
+            "": "auto",
+            "extensions": {
+                "stapler-class": "hudson.plugins.git.extensions.impl.WipeWorkspace",
+                "$class": "hudson.plugins.git.extensions.impl.WipeWorkspace"
+            },
+            "stapler-class": "hudson.plugins.git.GitSCM",
+            "$class": "hudson.plugins.git.GitSCM"
+        },
+        "scriptPath": "ci/testbed/trigger-testbed-validation.jenkinsfile",
+        "lightweight": false,
+        "stapler-class": "org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition",
+        "$class": "org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition"
+    },
+    "core:apply": ""
+}
