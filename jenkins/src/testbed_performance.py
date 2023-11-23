@@ -5,6 +5,7 @@ import subprocess
 from typing import Dict
 
 import src.retrieve_logs as retrieve_logs
+import src.yaml_loader as yaml_loader
 import yaml
 
 jenkins_url = "http://jenkins-ber.reeinfra.net/view/Main%20Testbed%20Queues/"
@@ -13,7 +14,10 @@ build_info_url = f"{jenkins_url}{job_name}"
 
 
 def main():
-    credentials = get_credentials()
+    current_dir = os.getcwd()
+    credentials =  yaml_loader.load_yaml(
+        pathlib.Path(f"{current_dir}/credentials/credentials.yaml").open().read()
+    )
     last_successful_build = retrieve_logs.get_last_build_information(
         "Successful", credentials, build_info_url
     )
@@ -23,20 +27,63 @@ def main():
     list_of_builds = get_last_3_succesfull_builds(
         last_successful_build, credentials, build_info_url
     )
-    metrics_yaml = get_log_yaml(console_log)
 
-    print("")
-    print(metrics_yaml)
-    print(list_of_builds)
+    all_metrics = collect_metrics(list_of_builds, credentials, build_info_url)
+    metrics_average = get_metrics_average(all_metrics)
 
+    front_camera_packets = 'front camera packets per second_packets_per_second'
 
-def get_credentials():
-    current_dir = os.getcwd()
-    with open(pathlib.Path(f"{current_dir}/../credentials/credentials.yaml"), "r") as f:
-        credentials = yaml.safe_load(f)
+    list_of_keys_camera_bitrate = ['front camera bitrate_kbits_per_second', 
+                    'left camera bitrate_kbits_per_second',
+                    'right camera bitrate_kbits_per_second',
+                    'back camera bitrate_kbits_per_second']
 
-    return credentials
+    list_of_keys_camera_new_unit = ['front camera Mbit/s',
+                                'left camera Mbit/s',
+                                'right camera Mbit/s',
+                                'back camera Mbit/s']
 
+    list_of_keys_udp_tcp_bitrate = ['ROS UDP_kbits_per_second',
+                    'ROS TCP_kbits_per_second',
+                    'UDP TS-VE_kbits_per_second',
+                    'UDP VE-TS_kbits_per_second',
+                    'TCP TS-VE_kbits_per_second',
+                    'TCP VE-TS_kbits_per_second']
+
+    list_of_keys_udp_tcp_new_unit = ['ROS UDP Mbit/s', 
+                            'ROS TCP Mbit/s',
+                            'UDP TS-VE Mbit/s',
+                            'UDP VE-TS Mbit/s',
+                            'TCP TS-VE Mbit/s',
+                            'TCP VE-TS Mbit/s']
+    print('Average of following builds:', [build['build'] for build in list_of_builds], "on Branch:", list_of_builds[0]["branch"])
+    print('front camera packets/s','\t\t',
+        round(metrics_average[front_camera_packets]['minimum']['value']), 
+        round(metrics_average[front_camera_packets]['median']['value']),
+        round(metrics_average[front_camera_packets]['max']['value']))
+
+    for key in zip(list_of_keys_camera_bitrate, list_of_keys_camera_new_unit):
+        if len(key[1]) < 16:
+                tab = '\t\t\t'
+        else:
+                tab = '\t\t'
+        print(key[1],tab,
+            round(metrics_average[key[0]]['minimum']['value']/1000,2), 
+            round(metrics_average[key[0]]['median']['value']/1000,2),
+            round(metrics_average[key[0]]['max']['value']/1000,2))
+    print("----------------------------------------")
+    print("UDP/TCP Bitrate")
+    for key in zip(list_of_keys_udp_tcp_bitrate, list_of_keys_udp_tcp_new_unit):
+
+        if len(key[1]) < 16:
+                tab = '\t\t\t'
+        else:
+                tab = '\t\t'
+
+        print(key[1],tab,
+            round(metrics_average[key[0]]['minimum']['value']/1000,2), 
+            round(metrics_average[key[0]]['median']['value']/1000,2),
+            round(metrics_average[key[0]]['max']['value']/1000,2))
 
 def get_log_yaml(console_log: str):
     lines = console_log.split("\n")
