@@ -1,0 +1,5 @@
+user: 'jan.lack@vay.io'
+authenticator: 'externalbrowser'
+account: 'vay-vay_ee'
+warehouse: 'BI_XS'
+database: 'DWH'
