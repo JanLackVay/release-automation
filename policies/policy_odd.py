@@ -14,7 +14,11 @@ def main(policy_id, action):
         "las-vegas-odd-ops-validation",
         "las-vegas-odd-commercial-unlv",
         "las-vegas-odd-city-exploration",
+        "LV-VALIDATION",
+        "LV-SERVICE-TELEDRIVE",
+        "LV-EXPLORATION ",
     ]
+
     berlin_odds = [
         "berlin-odd-v1",
         "berlin-odd-route-30kmh",

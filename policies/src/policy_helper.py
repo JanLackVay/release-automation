@@ -10,7 +10,7 @@ def sendPolicyAPIRequest(odd_id: str, new_policy_ids: str, send_request=True):
         "odd": {"id": odd_id, "vehicleConfigurationPolicyIds": new_policy_ids},
         "setMask": "odd.vehicleConfigurationPolicyIds",
     }
-    APIRequest(api_params, send_request)
+    return APIRequest(api_params, send_request)
 
 
 def sendAccessTypeAPIRequest(odd_id: str, new_access_type: str, send_request=True):
@@ -19,7 +19,7 @@ def sendAccessTypeAPIRequest(odd_id: str, new_access_type: str, send_request=Tru
         "odd": {"id": odd_id, "accessType": new_access_type},
         "setMask": "odd.accessType",
     }
-    APIRequest(api_params, send_request)
+    return APIRequest(api_params, send_request)
 
 
 def sendLifecycleAPIRequest(odd_id: str, new_lifecycle_state: str, send_request=True):
@@ -28,7 +28,7 @@ def sendLifecycleAPIRequest(odd_id: str, new_lifecycle_state: str, send_request=
         "odd": {"id": odd_id, "lifecycleStatus": new_lifecycle_state},
         "setMask": "odd.lifecycleStatus",
     }
-    APIRequest(api_params, send_request)
+    return APIRequest(api_params, send_request)
 
 
 def APIRequest(api_params: dict[str, dict[str, str]], send_request=True):
