@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/poliyc_helper"]
+packages = ["src/policy_helper"]
 
 [project]
-name = "poliyc_helper"
+name = "policy_helper"
 version = "0.0.1"
