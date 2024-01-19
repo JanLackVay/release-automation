@@ -1,0 +1,7 @@
+snowflake-connector-python==3.5.0
+ipykernel==6.26.0
+jupyter_client==8.6.0
+PyYAML==6.0.1
+slack-sdk==3.26.1
+snowflake-connector-python==3.5.0
+-e .

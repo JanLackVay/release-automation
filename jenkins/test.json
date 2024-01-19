@@ -1,5 +1,5 @@
 {
-    "enable": false,
+    "enable": true,
     "description": "<!-- Managed by Jenkins Job Builder -->",
     "properties": {
         "stapler-class-bag": "true",

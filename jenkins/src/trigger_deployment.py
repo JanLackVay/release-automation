@@ -3,6 +3,7 @@ import os
 import pathlib
 
 import requests
+
 import src.yaml_loader as yaml_loader
 
 
@@ -10,7 +11,7 @@ def main(branch: str, machine: str):
     current_dir = os.getcwd()
 
     job_configuration = yaml_loader.load_yaml(
-        pathlib.Path(f"{current_dir}/config.yaml").open().read()
+        pathlib.Path(f"{current_dir}/config/config.yaml").open().read()
     )["deployment"]
 
     jenkins_url = job_configuration["jenkins_url"]
