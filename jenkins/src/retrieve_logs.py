@@ -39,14 +39,17 @@ def get_session_information(
     )
     result = console_log.json()["result"]
     if result == "ABORTED":
-        return "Error: Couldn't retrieve any information."
+        print("Error: Couldn't retrieve any information.")
+        return {"result": None}
     elif console_log.json()["actions"][2] == {}:
-        return "Error: Couldn't retrieve any information."
+        print("Error: Couldn't retrieve any information.")
+        return {"result": None}
     else:
         branch = console_log.json()["actions"][2]["parameters"][0]["value"]
         if console_log.json()["description"] != "None":
             session_id = str(console_log.json()["description"]).split("\n")[0]
         time = console_log.json()["timestamp"]
+        print(result)
         return {
             "result": result,
             "branch": branch,
