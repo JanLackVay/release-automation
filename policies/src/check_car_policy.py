@@ -1,3 +1,5 @@
+import os
+
 import snowflake.connector
 import yaml
 
@@ -54,13 +56,20 @@ TELESTATION_KEYS = ["telestation_vdrive", "telestation_reecu", "telestation_sec"
 def main():
     query_config = yaml.safe_load(open("../config.yaml", "r"))
     release_config = yaml.safe_load(open("../expected_config.yaml", "r"))
-    fleet_level = yaml.safe_load(open("../fleet_level.yaml", "r"))
+    fleet_level_ve = yaml.safe_load(open("../fleet_level_ve.yaml", "r"))
+    fleet_level_ts = yaml.safe_load(open("../fleet_level_ts.yaml", "r"))
 
-    release_fleet = fleet_level["release_testing"]
-    engineering_fleet = fleet_level["staging"] + fleet_level["pre_production"]
-    production_fleet = fleet_level["production"]
+    release_fleet_ve = fleet_level_ve["release_testing"]
+    engineering_fleet_ve = fleet_level_ve["staging"] + fleet_level_ve["pre_production"]
+    production_fleet_ve = fleet_level_ve["production"]
 
-    all_cars = release_fleet + engineering_fleet + production_fleet
+    all_cars = release_fleet_ve + engineering_fleet_ve + production_fleet_ve
+
+    release_fleet_ts = fleet_level_ts["release_testing"]
+    engineering_fleet_ts = fleet_level_ts["staging"] + fleet_level_ts["pre_production"]
+    production_fleet_ts = fleet_level_ts["production"]
+
+    all_telestations = release_fleet_ts + engineering_fleet_ts + production_fleet_ts
 
     con = snowflake.connector.connect(
         user=query_config["user"],
@@ -83,7 +92,7 @@ def main():
     )
 
     mismatched_telestations, matched_telestations = compare_telestation_configuration(
-        telestation_configuration, release_config
+        telestation_configuration, release_config, all_telestations
     )
 
     print(right_configuration_string(matched_telestations, "telestations"))
@@ -160,7 +169,9 @@ def compare_vehicle_configuration(
 
 
 def compare_telestation_configuration(
-    telestation_configuration: dict, release_config: dict
+    telestation_configuration: dict,
+    release_config: dict,
+    list_of_telestations: list[str],
 ):
     mismatched_telestations = {}
     matched_telestations = {}
@@ -169,8 +180,9 @@ def compare_telestation_configuration(
         mismatched_telestations[vsr_config["VSR"]] = []
         matched_telestations[vsr_config["VSR"]] = []
 
-    for telestation_name, telestation_params in telestation_configuration.items():
+    for telestation in list_of_telestations:
         match_found = False
+        telestation_params = telestation_configuration[telestation]
         for vsr_config in release_config:
             if (
                 telestation_params["telestation_sec"] == vsr_config["telestation_sec"]
@@ -178,13 +190,13 @@ def compare_telestation_configuration(
                 and telestation_params["telestation_reecu"] == vsr_config["reecu"]
             ):
                 match_found = True
-                matched_telestations[vsr_config["VSR"]].append(telestation_name)
+                matched_telestations[vsr_config["VSR"]].append(telestation)
                 break
         if match_found == False:
             for vsr_config in release_config:
                 mismatched_telestations[vsr_config["VSR"]].append(
                     {
-                        "name": telestation_name,
+                        "name": telestation,
                         "params": {
                             telestation_key: telestation_params[telestation_key]
                             for vsr_key, telestation_key in zip(
