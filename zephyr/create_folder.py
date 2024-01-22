@@ -22,16 +22,19 @@ def main(vsr_version: str, vdrive_version: str, vreecu_version):
 
     if not vsr_version:
         print("Create vDrive test cycle")
-        create_vdrive_test_cyle(headers_api, vdrive_version, test_case_information)
+        test_cycle_information = create_vdrive_test_cyle(
+            headers_api, vdrive_version, test_case_information
+        )
     else:
         print("Create VSR test cycle")
-        create_vsr_test_cycle(
+        test_cycle_information = create_vsr_test_cycle(
             headers_api,
             vsr_version,
             vdrive_version,
             vreecu_version,
             test_case_information,
         )
+    return test_cycle_information
 
 
 def create_vsr_test_cycle(
@@ -48,7 +51,7 @@ def create_vsr_test_cycle(
         parent_id=FOLDER_ID_VSR_TEST_CYCLE,
     )
     # convetional
-    convetional_key = create_test_cycle_folder(
+    conventional_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
         name=f"VSR {vsr_version} Conventional [vDrive {vdrive_version}, vREECU {vreecu_version}]",
@@ -59,12 +62,12 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=convetional_key,
+        testCycleKey=conventional_cycle_key,
         test_cases=conventional_tests,
     )
 
     # core
-    core_key = create_test_cycle_folder(
+    core_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
         name=f"VSR {vsr_version} Core Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]",
@@ -78,12 +81,12 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=core_key,
+        testCycleKey=core_cycle_key,
         test_cases=core_tests,
     )
 
     # without sd
-    wo_sd_key = create_test_cycle_folder(
+    wo_sd_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
         name=f"VSR {vsr_version} w/o_SD Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]",
@@ -98,12 +101,12 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=wo_sd_key,
+        testCycleKey=wo_sd_cycle_key,
         test_cases=wo_sd_tests,
     )
 
     # with sd
-    w_sd_key = create_test_cycle_folder(
+    w_sd_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
         name=f"VSR {vsr_version} w_SD Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]",
@@ -118,15 +121,15 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=w_sd_key,
+        testCycleKey=w_sd_cycle_key,
         test_cases=w_sd_tests,
     )
 
     # us minimal
-    us_min_key = create_test_cycle_folder(
+    minimal_us_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
-        name=f"VSR {vsr_version} Minimal US [vDrive {vdrive_version}, vREECU {vreecu_version}]",
+        name=f"VSR {vsr_version} US Minimal [vDrive {vdrive_version}, vREECU {vreecu_version}]",
     )
 
     us_min_tests = filter_test_cases(
@@ -136,12 +139,12 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=us_min_key,
+        testCycleKey=minimal_us_cycle_key,
         test_cases=us_min_tests,
     )
 
     # us conventional
-    us_conv_key = create_test_cycle_folder(
+    conventional_us_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id,
         name=f"VSR {vsr_version} Conventional US [vDrive {vdrive_version}, vREECU {vreecu_version}]",
@@ -152,9 +155,18 @@ def create_vsr_test_cycle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=us_conv_key,
+        testCycleKey=conventional_us_cycle_key,
         test_cases=us_conv_tests,
     )
+
+    return {
+        "conventional_cycle_key": conventional_cycle_key,
+        "core_cycle_key": core_cycle_key,
+        "wo_sd_cycle_key": wo_sd_cycle_key,
+        "w_sd_cycle_key": w_sd_cycle_key,
+        "minimal_us_cycle_key": minimal_us_cycle_key,
+        "conventional_us_cycle_key": conventional_us_cycle_key,
+    }
 
 
 def create_vdrive_test_cyle(
@@ -165,7 +177,7 @@ def create_vdrive_test_cyle(
     vdrive_tests = filter_test_cases(test_case_information, desired_labels=["vDrive"])
     print(vdrive_tests)
 
-    vdrive_key = create_test_cycle_folder(
+    vdrive_cycle_key = create_test_cycle_folder(
         headers_api,
         parent_id=FOLDER_ID_VDRIVE_TEST_CYCLE,
         name=f"vDrive release-{vdrive_version}",
@@ -174,9 +186,10 @@ def create_vdrive_test_cyle(
     assign_testcases_to_testcycle(
         url=f"{URL}/testexecutions",
         headers_api=headers_api,
-        testCycleKey=vdrive_key,
+        testCycleKey=vdrive_cycle_key,
         test_cases=vdrive_tests,
     )
+    return {"vdrive_cycle_key": vdrive_cycle_key}
 
 
 def get_all_test_cases(url: str, headers_api: dict[str, str]):
@@ -190,18 +203,14 @@ def get_all_test_cases(url: str, headers_api: dict[str, str]):
     return requests.get(url, headers=headers_api, params=parameters).json()
 
 
-def create_vsr_folder(api_token: dict[str, str], url: str, name: str, parent_id: int):
+def create_vsr_folder(headers_api: dict[str, str], url: str, name: str, parent_id: int):
     payload = {
         "parentId": parent_id,
         "name": name,
         "projectKey": "REE",
         "folderType": "TEST_CYCLE",
     }
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": api_token,
-    }
+    headers = headers_api
     response = requests.post(url, json=payload, headers=headers)
     return response.json()["id"]
 
@@ -256,7 +265,6 @@ def assign_testcases_to_testcycle(url, headers_api, testCycleKey, test_cases):
         initial_test_case_information = requests.post(
             url, headers=headers_api, json=parameters
         ).json()
-    print(initial_test_case_information)
 
 
 def parse_args():
@@ -264,18 +272,18 @@ def parse_args():
     parser.add_argument(
         "--vsr-version",
         type=str,
-        help="VSR version.",
+        help="VSR version: <major>.<minor>.<patch>",
     )
     parser.add_argument(
         "--vdrive-version",
         type=str,
         required=True,
-        help="vDrive version. If only vDrive test cycle should be created, use just this argument.",
+        help="vDrive version. <major>.<minor>.<patch> If only vDrive test cycle should be created, use just this argument.",
     )
     parser.add_argument(
         "--vreecu-version",
         type=str,
-        help="vREECU version.",
+        help="vREECU version. <major>.<minor>.<patch>",
     )
     return parser.parse_args()
 
