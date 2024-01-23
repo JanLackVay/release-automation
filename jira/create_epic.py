@@ -18,15 +18,16 @@ def main(release_number: int):
         issuetype=dict(name="Epic"),
     )
 
+    create_epic(jira, fields_epic, release_number)
+    create_engineering_test
+
+
+def create_epic(jira, fields_epic, release_number):
     epic = jira.create_issue(fields_epic)
     epic_key = epic["key"]
-    update_epic = dict(
-        assignee=assigned,
-        priority=p0,
-        labels=label,
-        customfield_10011=epic_name,  # customfield_10011 is epic
-        components=component,
-    )
+
+    jira.update_issue_field(epic_key, epic_parameters(release_number))
+    return epic_key
 
 
 def epic_parameters(release_number):
@@ -35,6 +36,20 @@ def epic_parameters(release_number):
     label = [f"vDrive_{release_number}"]
     epic_name = f"release-{release_number}.0"
     component = [{"id": "10181"}]
+
+    update_epic = dict(
+        assignee=assigned,
+        priority=p0,
+        labels=label,
+        customfield_10011=epic_name,  # customfield_10011 is epic
+        components=component,
+    )
+
+    return update_epic
+
+
+def create_engineering_test():
+    pass
 
 
 def parse_args():
