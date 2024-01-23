@@ -11,7 +11,7 @@ LOG_FILE = "github_api.log"  # Add a log file for better logging
 
 
 def main(reecu_tag: str, depb_tag: str):
-    setup_logging()
+    setup_logging(LOG_FILE)
 
     gh_token = yaml.safe_load(open("credentials.yaml"))["gh_token"]
     repo_owner = "Reemote"
@@ -64,9 +64,9 @@ def main(reecu_tag: str, depb_tag: str):
 
 
 # Utility Functions
-def setup_logging():
+def setup_logging(log_file):
     logging.basicConfig(
-        filename=LOG_FILE,
+        filename=log_file,
         level=logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
