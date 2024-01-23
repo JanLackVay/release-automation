@@ -3,6 +3,7 @@ import json
 
 import requests
 import yaml
+from requests.auth import HTTPBasicAuth
 
 URL = "https://vayio.atlassian.net/rest/api/2/issue"
 
