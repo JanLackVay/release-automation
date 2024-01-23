@@ -1,19 +1,24 @@
 import argparse
 import re
+import time
 
 import requests
 import yaml
+
+GITHUB_API_URL = "https://api.github.com/repos"
 
 
 def main(reecu_tag: str, depb_tag: str):
     gh_token = yaml.safe_load(open("credentials.yaml"))["gh_token"]
     repo_owner = "Reemote"
-    reecu_repo_name = "ree-reecu"
-    reecu_repo_url = f"https://api.github.com/repos/{repo_owner}/{reecu_repo_name}"
-    submodule_path = "external/ree-reecu-sec-r5"
 
+    reecu_repo_name = "ree-reecu"
     depb_repo_name = "depb"
-    depb_repo_url = f"https://api.github.com/repos/{repo_owner}/{depb_repo_name}"
+
+    reecu_repo_url = get_repo_url(repo_owner, reecu_repo_name)
+    depb_repo_url = get_repo_url(repo_owner, depb_repo_name)
+
+    submodule_path = "external/ree-reecu-sec-r5"
 
     tags_url_suffix = "git/refs/tags"
 
@@ -53,28 +58,56 @@ def main(reecu_tag: str, depb_tag: str):
     return asset_links
 
 
+def get_repo_url(owner, repo):
+    return f"{GITHUB_API_URL}/{owner}/{repo}"
+
+
+def make_github_request(url, headers):
+    response = requests.get(url, headers=headers)
+
+    try:
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+        if response.status_code == 403:
+            # Check for rate limit exceeded
+            remaining_requests = int(response.headers.get("X-RateLimit-Remaining", 0))
+            reset_time = int(response.headers.get("X-RateLimit-Reset", 0))
+
+            if remaining_requests == 0:
+                # Sleep until the rate limit resets
+                sleep_time = max(0, reset_time - int(time.time()))
+                print(f"Rate limit exceeded. Sleeping for {sleep_time} seconds.")
+                time.sleep(sleep_time)
+                # Make the request again
+                return make_github_request(url, headers)
+
+    # Raise an exception for other non-successful responses
+    response.raise_for_status()
+
+
 def get_base_repo_tag(
     base_repo_tags_url: str,
     tags_url_suffix: str,
     headers: dict[str, str],
     main_repo_tag: str,
 ):
-    response = requests.get(f"{base_repo_tags_url}/{tags_url_suffix}", headers=headers)
+    tags = make_github_request(
+        f"{base_repo_tags_url}/{tags_url_suffix}", headers=headers
+    )
+    for tag in tags:
+        tag_name = tag["ref"].replace("refs/tags/", "")
 
-    if response.status_code == 200:
-        tags = response.json()
-        for tag in tags:
-            tag_name = tag["ref"].replace("refs/tags/", "")
-
-            if main_repo_tag in tag_name:
-                if tag_name.startswith("v"):
-                    main_tag = tag_name
-                    break
-                elif tag_name.startswith("R"):
-                    main_tag = tag_name
-                    break
-                else:
-                    main_tag = tag_name
+        if main_repo_tag in tag_name:
+            if tag_name.startswith("v"):
+                main_tag = tag_name
+                break
+            elif tag_name.startswith("R"):
+                main_tag = tag_name
+                break
+            else:
+                main_tag = tag_name
     if not main_tag:
         raise Exception("Could not find tag")
     return main_tag
@@ -84,8 +117,8 @@ def get_submodule_tag(
     base_repo_url: str, submodule_path: str, base_repo_tag: str, headers: dict[str, str]
 ):
     submodule_url = f"{base_repo_url}/contents/{submodule_path}?ref={base_repo_tag}"
-    submodule_url = requests.get(submodule_url, headers=headers).json()["git_url"]
-    submodule_sha = requests.get(submodule_url, headers=headers).json()["sha"]
+    submodule_url = make_github_request(submodule_url, headers=headers)["git_url"]
+    submodule_sha = make_github_request(submodule_url, headers=headers)["sha"]
 
     match = re.match(
         r"https://api.github.com/repos/([^/]+)/([^/]+)/git/trees/([^/]+)", submodule_url
@@ -97,9 +130,8 @@ def get_submodule_tag(
     else:
         raise Exception("Could not parse submodule URL")
 
-    # sumbodule_repo_tag = get_base_repo_tag(submodule_url, tags_url_suffix, headers, main_repo_tag)
-    response = requests.get(submodule_url + "/git/refs/tags", headers=headers)
-    for sha in response.json():
+    response = make_github_request(submodule_url + "/git/refs/tags", headers=headers)
+    for sha in response:
         if sha["object"]["sha"] == submodule_sha:
             submodule_tag = sha["ref"].replace("refs/tags/", "")
 
@@ -110,11 +142,11 @@ def get_submodule_tag(
 
 def get_assest_link(repo_url: str, headers: dict[str, str], tag: str, host: str = None):
     repo_tag_url = f"{repo_url}/releases/tags/{tag}"
-    repo_assets_url = requests.get(repo_tag_url, headers=headers).json()["assets_url"]
+    repo_assets_url = make_github_request(repo_tag_url, headers=headers)["assets_url"]
     if not repo_assets_url:
         raise Exception("Could not find assets URL")
 
-    repo_assets = requests.get(repo_assets_url, headers=headers).json()
+    repo_assets = make_github_request(repo_assets_url, headers=headers)
 
     if host:
         for asset in repo_assets:
