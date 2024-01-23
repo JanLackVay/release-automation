@@ -1,4 +1,5 @@
 import argparse
+import logging
 import re
 import time
 
@@ -6,12 +7,14 @@ import requests
 import yaml
 
 GITHUB_API_URL = "https://api.github.com/repos"
+LOG_FILE = "github_api.log"  # Add a log file for better logging
 
 
 def main(reecu_tag: str, depb_tag: str):
+    setup_logging()
+
     gh_token = yaml.safe_load(open("credentials.yaml"))["gh_token"]
     repo_owner = "Reemote"
-
     reecu_repo_name = "ree-reecu"
     depb_repo_name = "depb"
 
@@ -19,7 +22,6 @@ def main(reecu_tag: str, depb_tag: str):
     depb_repo_url = get_repo_url(repo_owner, depb_repo_name)
 
     submodule_path = "external/ree-reecu-sec-r5"
-
     tags_url_suffix = "git/refs/tags"
 
     headers = {
@@ -30,32 +32,44 @@ def main(reecu_tag: str, depb_tag: str):
 
     asset_links = {"reecu": {}, "sec": {}, "depb": {}}
 
-    reecu_repo_tag = get_base_repo_tag(
-        reecu_repo_url, tags_url_suffix, headers, reecu_tag
+    try:
+        reecu_repo_tag = get_base_repo_tag(
+            reecu_repo_url, tags_url_suffix, headers, reecu_tag
+        )
+        reecu_repo_asset_link = get_assest_link(reecu_repo_url, headers, reecu_repo_tag)
+        asset_links["reecu"]["tag"] = reecu_repo_tag
+        asset_links["reecu"]["asset_link"] = reecu_repo_asset_link
+
+        submodule_tag, submodule_url = get_submodule_tag(
+            reecu_repo_url, submodule_path, reecu_repo_tag, headers
+        )
+        submodule_asset_link = get_assest_link(
+            submodule_url, headers, submodule_tag, host="ve"
+        )
+        asset_links["sec"]["tag"] = submodule_tag
+        asset_links["sec"]["asset_link"] = submodule_asset_link
+
+        depb_repo_tag = get_base_repo_tag(
+            depb_repo_url, tags_url_suffix, headers, depb_tag
+        )
+        depb_assets_link = f"https://github.com/Reemote/depb/releases/{depb_repo_tag}"
+        asset_links["depb"]["tag"] = depb_repo_tag
+        asset_links["depb"]["asset_link"] = depb_assets_link
+
+        print(asset_links)
+        return asset_links
+    except Exception as e:
+        logging.exception("An error occurred:")
+        print(f"An error occurred: {e}")
+
+
+# Utility Functions
+def setup_logging():
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(message)s",
     )
-    reecu_repo_asset_link = get_assest_link(reecu_repo_url, headers, reecu_repo_tag)
-
-    asset_links["reecu"]["tag"] = reecu_repo_tag
-    asset_links["reecu"]["asset_link"] = reecu_repo_asset_link
-
-    submodule_tag, submodule_url = get_submodule_tag(
-        reecu_repo_url, submodule_path, reecu_repo_tag, headers
-    )
-    submodule_asset_link = get_assest_link(
-        submodule_url, headers, submodule_tag, host="ve"
-    )
-
-    asset_links["sec"]["tag"] = submodule_tag
-    asset_links["sec"]["asset_link"] = submodule_asset_link
-
-    depb_repo_tag = get_base_repo_tag(depb_repo_url, tags_url_suffix, headers, depb_tag)
-    depb_assets_link = f"https://github.com/Reemote/depb/releases/{depb_repo_tag}"
-
-    asset_links["depb"]["tag"] = depb_repo_tag
-    asset_links["depb"]["asset_link"] = depb_assets_link
-
-    print(asset_links)
-    return asset_links
 
 
 def get_repo_url(owner, repo):
@@ -87,6 +101,7 @@ def make_github_request(url, headers):
     response.raise_for_status()
 
 
+# Asset-Related Functions
 def get_base_repo_tag(
     base_repo_tags_url: str,
     tags_url_suffix: str,
