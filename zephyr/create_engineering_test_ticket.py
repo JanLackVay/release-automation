@@ -11,11 +11,13 @@ URL = "https://vayio.atlassian.net/rest/api/2/issue"
 def main(
     vsr_version: str,
     vdrive_version: str,
-    vreecu_version,
-    depb_version: str,
-    sec_ts_version: str,
-    sec_ve_version: str,
+    vreecu_assets: dict[str, str],
+    depb_assets: dict[str, str],
+    sec_ve_assets: dict[str, str],
+    cycle_information: dict[str, str],
+    regression: bool == False,
 ):
+    sec_ts_version = "1.15.0"
     username = yaml.safe_load(open("credentials.yaml"))["user_name"]
     api_token = yaml.safe_load(open("credentials.yaml"))["jira_api_token"]
 
@@ -39,23 +41,44 @@ def main(
         "p_0": "1",
         "engineering_test_ticket_title": "Engineering Test Ticket",
     }
-    payload_items[
-        "test_description"
-    ] = f"""vREECU {vreecu_version}: [https://github.com/Reemote/ree-reecu/releases/download/R{vreecu_version}/release_artifacts.zip|https://github.com/Reemote/ree-reecu/releases/download/R{vreecu_version}/release_artifacts.zip]\n
-        vDrive *v{vdrive_version}*\n
-        SEC: VE v{sec_ve_version} [https://github.com/Reemote/ree-reecu-sec/releases/download/v3.2.0/sec_ve-v3.2.0-0b85da4.jed|https://github.com/Reemote/ree-reecu-sec/releases/download/v3.2.0/sec_ve-v3.2.0-0b85da4.jed]
-        SEC: TS v{sec_ts_version} [https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed|https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed]
-        Left DEPB: [{depb_version}|https://github.com/Reemote/depb/releases/tag/R{depb_version}]\n
-        Right DEPB [{depb_version}|https://github.com/Reemote/depb/releases/tag/R{depb_version}]\n
-        h2. Test cycles\n
-        h3. [VSR {vsr_version} Core Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{core_cycle_key}]\n
-        h3. [VSR {vsr_version} Conventional[vDrive {vdrive_version}, vREECU {vreecu_version}]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{conventional_cycle_key}]\n
-        h3. [VSR {vsr_version} w/o_SD Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{wo_sd_cycle_key}]\n
-        h3. [VSR {vsr_version} w_SD Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{w_sd_cycle_key}]\n
-        h3. [VSR {vsr_version} [Minimal US release cycle]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{minimal_us_cycle_key}]\n
-        h3. [VSR {vsr_version} [US conventional cycle]|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{conventional_us_cycle_key}]"""
 
-    create_ett(auth, payload_items)
+    if vsr_version:
+        payload_items["engineering_test_ticket_title"] = f"VSR {vsr_version}"
+        payload_items[
+            "test_description"
+        ] = f"""vREECU {vreecu_assets["tag"]}: [{vreecu_assets["asset_link"]}|{vreecu_assets["asset_link"]}] \n
+        vDrive *v{vdrive_version}* \n
+        SEC: VE v{sec_ve_assets["tag"]} [{sec_ve_assets["asset_link"]}|{sec_ve_assets["asset_link"]}] \n
+        SEC: TS v{sec_ts_version} [https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed|https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed] \n
+        Left DEPB: [{depb_assets["tag"]}|{depb_assets["asset_link"]}] \n
+        Right DEPB: [{depb_assets["tag"]}|{depb_assets["asset_link"]}] \n
+        h2. Test cycles \n
+        """
+        if regression:
+            payload_items[
+                "test_description"
+            ] += f"h3. [VSR {vsr_version} Regression Cycle (vDrive {vdrive_version}, vREECU {vreecu_assets['tag']})|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{cycle_information['regression']}] \n"
+
+        # Add other cycles
+        payload_items["test_description"] += "".join(
+            f"h3.[VSR {vsr_version} {cycle.capitalize()} (vDrive {vdrive_version}, vREECU {vreecu_assets['tag']})|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{cycle_information[cycle]['key']}] \n"
+            for cycle in [
+                "core",
+                "conventional",
+                "without_sd",
+                "with_sd",
+                "minimal_us",
+                "conventional_us",
+            ]
+        )
+    else:
+        payload_items["engineering_test_ticket_title"] = f"release {vdrive_version}"
+        payload_items[
+            "test_description"
+        ] = f"""Please follow this test cycle: https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{cycle_information["vdrive"]["key"]}
+        Starting with {vdrive_version}"""
+
+    return create_ett(auth, payload_items)
 
 
 def create_ett(auth, payload_items):
@@ -90,6 +113,7 @@ def create_ett(auth, payload_items):
     )
 
     response = requests.request("POST", url, data=payload, headers=headers, auth=auth)
+    return response.json()
 
 
 def parse_args():
@@ -106,19 +130,29 @@ def parse_args():
         help="vDrive version. <major>.<minor>.<patch> If only vDrive test cycle should be created, use just this argument.",
     )
     parser.add_argument(
-        "--vreecu-version",
-        type=str,
-        help="vREECU version. <major>.<minor>.<patch>",
+        "--vreecu-assets",
+        type=dict[str, str],
+        help="vREECU assets dict[tag, asset_link]",
     )
     parser.add_argument(
-        "--depb-version",
-        type=str,
-        help="vREECU version. <major>.<minor>.<patch>",
+        "--depb-assets",
+        type=dict[str, str],
+        help="DEPB assets dict[tag, asset_link].",
     )
     parser.add_argument(
-        "--sec-version",
-        type=str,
-        help="vREECU version. <major>.<minor>.<patch>",
+        "--sec-assets",
+        type=dict[str, str],
+        help="SEC assets dict[tag, asset_link].",
+    )
+    parser.add_argument(
+        "--cycle-information",
+        type=dict[str, str],
+        help="Cycle information.",
+    )
+    parser.add_argument(
+        "--regression",
+        type=lambda x: x.lower() == "true",
+        help="If regression test cycle should be created true, else false.",
     )
     return parser.parse_args()
 
