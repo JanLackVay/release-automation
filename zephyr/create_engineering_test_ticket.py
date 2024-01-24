@@ -16,6 +16,7 @@ def main(
     sec_ve_assets: dict[str, str],
     cycle_information: dict[str, str],
     regression: bool == False,
+    parent_epic_id: str,
 ):
     sec_ts_version = "1.15.0"
     username = yaml.safe_load(open("credentials.yaml"))["user_name"]
@@ -40,6 +41,7 @@ def main(
         "test_location": "customfield_10571",
         "p_0": "1",
         "engineering_test_ticket_title": "Engineering Test Ticket",
+        "parent_id": parent_epic_id,
     }
 
     if vsr_version:
@@ -89,6 +91,7 @@ def create_ett(auth, payload_items):
     payload = json.dumps(
         {
             "fields": {
+                "parent": {"id": payload_items["parent_id"]},
                 "components": [{"id": payload_items["components_id"]}],
                 "summary": payload_items["engineering_test_ticket_title"],
                 "issuetype": {"id": payload_items["engineering_test_ticket_id"]},

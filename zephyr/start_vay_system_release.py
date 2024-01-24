@@ -2,6 +2,7 @@ import argparse
 
 import yaml
 from create_engineering_test_ticket import main as create_engineering_test_ticket
+from create_epic import main as create_epic
 from create_test_cycles import main as create_test_cycles
 from extract_gh_assets import main as extract_gh_assets
 
@@ -37,6 +38,8 @@ def main(
     }
 
     if vsr_version:
+        epic_id = create_epic(vsr_version=vsr_version, vdrive_version=vdrive_version)
+        print(epic_id)
         cycle_information = create_test_cycles(
             vsr_version=vsr_version,
             vdrive_version=vdrive_version,
@@ -54,8 +57,11 @@ def main(
             gh_assets["sec"],
             cycle_information,
             regression,
+            epic_id,
         )
     else:
+        epic_id = create_epic(vsr_version=None, vdrive_version=vdrive_version)
+        print(epic_id)
         cycle_information = create_test_cycles(
             vsr_version=None,
             vdrive_version=vdrive_version,
@@ -71,6 +77,7 @@ def main(
             sec_ve_assets=None,
             cycle_information=cycle_information,
             regression=False,
+            parent_epic_id=epic_id,
         )
     print(ett)
 
