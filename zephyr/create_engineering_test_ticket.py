@@ -25,13 +25,54 @@ def main(
     # Construct the basic authentication string
     auth = HTTPBasicAuth(username, api_token)
 
-    test_steps = "customfield_10058"  # to add test steps we need to add the steps to this field response.json()['fields']['customfield_10058']
-    components_id = "10181"  # ['fields']['components']['id']
-    assignee_id = "617969efe79ff6006fae4f89"  # ['fields']['assignee'] Chris Siebdold
-    assigned_mail = "christoph.siebold@vay.io"  # ['fields']['assignee']['emailAddress']
-    engineering_test_ticket_id = (
-        "10024"  # ['fields']['issuetype']['id'] engineering test ticket
-    )
+    payload_items = {
+        "test_steps": "customfield_10058",  # to add test steps we need to add the steps to this field response.json()['fields']['customfield_10058']
+        "components_id": "10181",  # ['fields']['components']['id']
+        "assignee_id": "617969efe79ff6006fae4f89",  # ['fields']['assignee'] Chris Siebdold
+        "engineering_test_ticket_id": "10024",  # ['fields']['issuetype']['id'] engineering test ticket
+        "responsible_engineer_id": "61ad43e1c510bc006b3458c4",  # ['fields']['customfield_10052']['accountId'] Jan Lack
+        "responsible_engineer": "customfield_10052",
+        "sd_required": "customfield_10053",
+        "td_required": "customfield_10054",
+        "preferred_test_date": "customfield_10055",
+        "estimated_length": "customfield_10059",
+        "additional_notes": "customfield_10060",
+        "expected_test_result": "customfield_10062",
+        "test_location": "customfield_10571",
+        "p_0": "1",
+        "engineering_test_ticket_title": "Engineering Test Ticket",
+        "parent_id": parent_epic_id,
+    }
+
+    if vsr_version:
+        payload_items["engineering_test_ticket_title"] = f"VSR {vsr_version}"
+        payload_items[
+            "test_description"
+        ] = f"""vREECU {vreecu_assets["tag"]}: [{vreecu_assets["asset_link"]}|{vreecu_assets["asset_link"]}] \n
+        vDrive *v{vdrive_version}* \n
+        SEC: VE v{sec_ve_assets["tag"]} [{sec_ve_assets["asset_link"]}|{sec_ve_assets["asset_link"]}] \n
+        SEC: TS v{sec_ts_version} [https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed|https://github.com/Reemote/ree-reecu-sec/releases/download/v1.15.0/sec_ts-v1.15.0-c180346.jed] \n
+        Left DEPB: [{depb_assets["tag"]}|{depb_assets["asset_link"]}] \n
+        Right DEPB: [{depb_assets["tag"]}|{depb_assets["asset_link"]}] \n
+        h2. Test cycles \n
+        """
+        if regression:
+            payload_items[
+                "test_description"
+            ] += f"h3.[VSR {vsr_version} Regression Cycle (vDrive {vdrive_version}, vREECU {vreecu_assets['tag']})|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{cycle_information['regression']['key']}] \n"
+
+        # Add other cycles
+        payload_items["test_description"] += "".join(
+            f"h3.[VSR {vsr_version} {cycle.capitalize()} (vDrive {vdrive_version}, vREECU {vreecu_assets['tag']})|https://vayio.atlassian.net/projects/REE?selectedItem=com.atlassian.plugins.atlassian-connect-plugin:com.kanoah.test-manager__main-project-page#!/testPlayer/{cycle_information[cycle]['key']}] \n"
+            for cycle in [
+                "core",
+                "conventional",
+                "without_sd",
+                "with_sd",
+                "minimal_us",
+                "conventional_us",
+            ]
+        )
     else:
         payload_items["engineering_test_ticket_title"] = f"release {vdrive_version}"
         payload_items[

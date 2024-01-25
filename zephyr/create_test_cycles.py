@@ -122,13 +122,13 @@ def create_vsr_test_cycle(
         cycle_information["regression"] = {"with_sd": None, "without_sd": None}
 
     for cycle_type in cycle_types:
-        cycle_information[cycle_type] = {
-            "name": f"VSR {vsr_version} {cycle_type.capitalize()} Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]",
-        }
+        cycle_information[cycle_type][
+            "name"
+        ] = f"VSR {vsr_version} {cycle_type.capitalize()} Cycle [vDrive {vdrive_version}, vREECU {vreecu_version}]"
         if "conventional" in cycle_type:
             cycle_information[cycle_type]["labels"] = ["Conventional"]
         elif "regression" in cycle_type:
-            cycle_information[cycle_type]["labels"] = ["Regression"]
+            cycle_information[cycle_type]["labels"] = ["regression"]
         else:
             cycle_information[cycle_type]["labels"] = ["vDrive_sys", "vREECU_sys"]
 
