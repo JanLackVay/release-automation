@@ -19,6 +19,7 @@ WITH ranked_versions AS (
 )
 SELECT
   SPLIT_PART(vay_system_release, '-', 2) as vay_system_release,
+  concat(vdrive_major_version, '.', vdrive_minor_version, '.', vdrive_patch_version) as vdrive_version,
   vdrive_major_version,
   vdrive_minor_version,
   vdrive_patch_version,
@@ -36,6 +37,7 @@ VEHICLE_QUERY = """
 select
   TO_CHAR(_ingested_at, 'YYYY-MM-DD HH24:MI') AS "Session started UTC"
   , vehicle:name as "name"
+  , concat(CAST(vehicle:software_version:sem_ver_tag:major AS INTEGER), '.', CAST(vehicle:software_version:sem_ver_tag:minor AS INTEGER), '.', CAST(vehicle:software_version:sem_ver_tag:patch AS INTEGER)) as "vdrive_version"
   , CAST(vehicle:software_version:sem_ver_tag:major AS INTEGER) as "vdrive_major_version"
   , CAST(vehicle:software_version:sem_ver_tag:minor AS INTEGER) as "vdrive_minor_version"
   , CAST(vehicle:software_version:sem_ver_tag:patch AS INTEGER) as "vdrive_patch_version"
@@ -59,6 +61,7 @@ TELESTATION_QUERY = """
 select
   TO_CHAR(_ingested_at, 'YYYY-MM-DD HH24:MI') AS "Session started UTC"
   , telestation:name as "name"
+  , concat(CAST(telestation:software_version:sem_ver_tag:major AS INTEGER), '.', CAST(telestation:software_version:sem_ver_tag:minor AS INTEGER), '.', CAST(telestation:software_version:sem_ver_tag:patch AS INTEGER)) as "vdrive_version"
   , cast(telestation:software_version:sem_ver_tag:major as integer) as "vdrive_major_version"
   , cast(telestation:software_version:sem_ver_tag:minor as integer) as "vdrive_minor_version"
   , cast(telestation:software_version:sem_ver_tag:patch as integer) as "vdrive_patch_version"
@@ -75,27 +78,14 @@ where true
 LIMIT 50
 """
 
-VSR_KEYS_VEHICLE = ["vdrive", "reecu", "vehicle_sec", "depb"]
-VSR_KEYS_TELESTATION = ["vdrive", "reecu", "telestation_sec"]
-
-VEHICLE_KEYS = ["vehicle_vdrive", "vehicle_reecu", "vehicle_sec", "depb_left"]
-TELESTATION_KEYS = ["telestation_vdrive", "telestation_reecu", "telestation_sec"]
-
 
 def main():
     query_config = yaml.safe_load(open("../config.yaml", "r"))
     fleet_level_ve = yaml.safe_load(open("../fleet_level_ve.yaml", "r"))
     fleet_level_ts = yaml.safe_load(open("../fleet_level_ts.yaml", "r"))
 
-    release_fleet_ve = fleet_level_ve["release_testing"]
-    engineering_fleet_ve = fleet_level_ve["staging"] + fleet_level_ve["pre_production"]
-    production_fleet_ve = fleet_level_ve["production"]
-    all_cars = release_fleet_ve + engineering_fleet_ve + production_fleet_ve
-
-    release_fleet_ts = fleet_level_ts["release_testing"]
-    engineering_fleet_ts = fleet_level_ts["staging"] + fleet_level_ts["pre_production"]
-    production_fleet_ts = fleet_level_ts["production"]
-    all_telestations = release_fleet_ts + engineering_fleet_ts + production_fleet_ts
+    development_fleet_ve = fleet_level_ve["development"]
+    development_fleet_ts = fleet_level_ts["development"]
 
     con = snowflake.connector.connect(
         user=query_config["user"],
@@ -111,11 +101,11 @@ def main():
     telestation_configuration = load_telestation_configuration(con)
 
     mismatched_vehicles, matched_vehicles = compare_vehicle_configuration(
-        vehicle_configuration, release_configuration, all_cars
+        vehicle_configuration, release_configuration, development_fleet_ve
     )
 
     mismatched_telestations, matched_telestations = compare_telestation_configuration(
-        telestation_configuration, release_configuration, all_telestations
+        telestation_configuration, release_configuration, development_fleet_ts
     )
 
     print(
@@ -147,11 +137,12 @@ def get_release_configurations(con):
     for row in release_configs:
         release = {}
         release["vay_system_release"] = row[0]
-        release["vdrive_major_version"] = row[1]
-        release["vdrive_minor_version"] = row[2]
-        release["vdrive_patch_version"] = row[3]
-        release["depb"] = row[4]
-        release["vreecu_version"] = row[5]
+        release["vdrive_version"] = row[1]
+        release["vdrive_major_version"] = row[2]
+        release["vdrive_minor_version"] = row[3]
+        release["vdrive_patch_version"] = row[4]
+        release["depb_version"] = row[5]
+        release["vreecu_version"] = row[6]
         release_configurations.append(release)
     return release_configurations
 
@@ -162,12 +153,13 @@ def load_vehicle_configuration(con) -> dict:
 
     for vehicle in vehicle_output:
         vehicle_configuration[vehicle[1].replace('"', "")] = {
-            "vdrive_major_version": vehicle[2],
-            "vdrive_minor_version": vehicle[3],
-            "vdrive_patch_version": vehicle[4],
-            "depb_left": vehicle[5],
-            "depb_right": vehicle[6],
-            "vreecu_version": vehicle[7],
+            "vdrive_version": vehicle[2],
+            "vdrive_major_version": vehicle[3],
+            "vdrive_minor_version": vehicle[4],
+            "vdrive_patch_version": vehicle[5],
+            "depb_left": vehicle[6],
+            "depb_right": vehicle[7],
+            "vreecu_version": vehicle[8],
         }
     return vehicle_configuration
 
@@ -177,10 +169,11 @@ def load_telestation_configuration(con) -> dict:
     telestation_configuration = {}
     for telestation in telestation_output:
         telestation_configuration[telestation[1].replace('"', "")] = {
-            "vdrive_major_version": telestation[2],
-            "vdrive_minor_version": telestation[3],
-            "vdrive_patch_version": telestation[4],
-            "vreecu_version": telestation[5],
+            "vdrive_version": telestation[2],
+            "vdrive_major_version": telestation[3],
+            "vdrive_minor_version": telestation[4],
+            "vdrive_patch_version": telestation[5],
+            "vreecu_version": telestation[6],
         }
     return telestation_configuration
 
@@ -192,26 +185,31 @@ def compare_vehicle_configuration(
     matched_vehicles = {}
     for vsr_config in release_configurations:
         matched_vehicles[vsr_config["vay_system_release"]] = []
-    for car in list_of_cars:
-        match_found = False
-        vehicle_params = vehicle_configuration[car]
-        for vsr_config in release_configurations:
-            if (
-                vehicle_params["vdrive_major_version"]
-                == vsr_config["vdrive_major_version"]
-                and vehicle_params["vdrive_minor_version"]
-                == vsr_config["vdrive_minor_version"]
-                and vehicle_params["vdrive_patch_version"]
-                >= vsr_config["vdrive_patch_version"]
-                and vehicle_params["vreecu_version"] == vsr_config["vreecu_version"]
-                and vehicle_params["depb_right"] == vsr_config["depb"]
-            ):
-                match_found = True
-                matched_vehicles[vsr_config["vay_system_release"]].append(car)
-                break
+    for vehicle in vehicle_configuration:
+        if vehicle not in list_of_cars:
+            match_found = False
+            vehicle_params = vehicle_configuration[vehicle]
+            for vsr_config in release_configurations:
+                if (
+                    vehicle_params["vdrive_major_version"]
+                    == vsr_config["vdrive_major_version"]
+                    and vehicle_params["vdrive_minor_version"]
+                    == vsr_config["vdrive_minor_version"]
+                    and vehicle_params["vdrive_patch_version"]
+                    >= vsr_config["vdrive_patch_version"]
+                    and vehicle_params["vreecu_version"] == vsr_config["vreecu_version"]
+                    and vehicle_params["depb_right"] == vsr_config["depb_version"]
+                ):
+                    match_found = True
+                    matched_vehicles[vsr_config["vay_system_release"]].append(vehicle)
+                    break
 
-        if not match_found:
-            mismatched_vehicles[car] = vehicle_params
+            if not match_found:
+                mismatched_vehicles[vehicle] = {
+                    "vdrive_version": vehicle_params["vdrive_version"],
+                    "vreecu_version": vehicle_params["vreecu_version"],
+                    "depb_right": vehicle_params["depb_right"],
+                }
     return mismatched_vehicles, matched_vehicles
 
 
@@ -226,27 +224,32 @@ def compare_telestation_configuration(
     for vsr_config in release_configurations:
         matched_telestations[vsr_config["vay_system_release"]] = []
 
-    for telestation in list_of_telestations:
-        match_found = False
-        telestation_params = telestation_configuration[telestation]
-        for vsr_config in release_configurations:
-            if (
-                telestation_params["vdrive_major_version"]
-                == vsr_config["vdrive_major_version"]
-                and telestation_params["vdrive_minor_version"]
-                == vsr_config["vdrive_minor_version"]
-                and telestation_params["vdrive_patch_version"]
-                >= vsr_config["vdrive_patch_version"]
-                and telestation_params["vreecu_version"] == vsr_config["vreecu_version"]
-            ):
-                match_found = True
-                matched_telestations[vsr_config["vay_system_release"]].append(
-                    telestation
-                )
-                break
+    for telestation in telestation_configuration:
+        if telestation not in list_of_telestations:
+            match_found = False
+            telestation_params = telestation_configuration[telestation]
+            for vsr_config in release_configurations:
+                if (
+                    telestation_params["vdrive_major_version"]
+                    == vsr_config["vdrive_major_version"]
+                    and telestation_params["vdrive_minor_version"]
+                    == vsr_config["vdrive_minor_version"]
+                    and telestation_params["vdrive_patch_version"]
+                    >= vsr_config["vdrive_patch_version"]
+                    and telestation_params["vreecu_version"]
+                    == vsr_config["vreecu_version"]
+                ):
+                    match_found = True
+                    matched_telestations[vsr_config["vay_system_release"]].append(
+                        telestation
+                    )
+                    break
 
-        if not match_found:
-            mismatched_telestations[telestation] = telestation_params
+            if not match_found:
+                mismatched_telestations[telestation] = {
+                    "vdrive_version": telestation_params["vdrive_version"],
+                    "vreecu_version": telestation_params["vreecu_version"],
+                }
     return mismatched_telestations, matched_telestations
 
 
@@ -284,13 +287,13 @@ def configuration_string(release_configurations):
     config_str = ""
     for release_config in release_configurations:
         config_str += "*" + release_config["vay_system_release"] + "* \n"
-        for key in release_config:
-            if (key != list(release_config.keys())[-1]) & (
-                key != list(release_config.keys())[0]
-            ):
-                config_str += key + ": " + str(release_config[key]) + " | "
-            elif key == list(release_config.keys())[-1]:
-                config_str += key + ": " + str(release_config[key])
+        config_str += (
+            "vdrive_version" + ": " + str(release_config["vdrive_version"]) + " | "
+        )
+        config_str += (
+            "depb_version" + ": " + str(release_config["depb_version"]) + " | "
+        )
+        config_str += "vreecu_version" + ": " + str(release_config["vreecu_version"])
         config_str += "\n"
     return config_str
 

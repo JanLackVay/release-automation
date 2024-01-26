@@ -11,9 +11,9 @@ def main():
     if "ts" in message or "ve" in message:
         message = message + "\n" + "FYI"
         if "ve-0" in message:
-            message = message + "\n" + "FYI <@D033PRP2KPF>"
+            message = message + "\n" + "@U02JU20LKB9>"  # Christoph Siebold
         if "us" in message:
-            message = message + "\n" + "FYI <@D02VA0VT6A2>"
+            message = message + "\n" + "<@U02V78AU64T>"  # Martin Kuckcuck
     slack_webhook_url = yaml.safe_load(open("../credentials.yaml", "r"))[
         "configuration_alert_url"
     ]
