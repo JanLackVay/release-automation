@@ -1,16 +1,7 @@
 development:
+  - "ve-0008"
+  - "ve-0014"
   - "ve-0015"
   - "ve-0016"
   - "ve-0019"
-release_testing:
-  - "ve-0009"
-  - "ve-0011"
-staging:
-  - "ve-0010"
-  - "ve-0012"
-pre_production:
-  - "ve-us-0001"
-  - "ve-us-0002"
-production:
-  - "ve-us-0003"
-  - "ve-us-0005"
+  - "ve-0020"
