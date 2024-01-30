@@ -29,15 +29,6 @@ def main(
     regression = False
     """
 
-    cycle_information = {
-        "conventional": {"key": "REE-R1100"},
-        "core": {"key": "REE-R1101"},
-        "with_sd": {"key": "REE-R1102"},
-        "without_sd": {"key": "REE-R1103"},
-        "minimal_us": {"key": "REE-R1104"},
-        "conventional_us": {"key": "REE-R1105"},
-    }
-
     if vsr_version:
         epic_id = create_epic(vsr_version=vsr_version, vdrive_version=vdrive_version)
         print(epic_id)
