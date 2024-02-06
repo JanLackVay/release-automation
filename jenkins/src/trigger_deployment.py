@@ -1,10 +1,12 @@
 import argparse
 import os
 import pathlib
+import time
 
 import requests
-
 import src.yaml_loader as yaml_loader
+
+JENKINS_JOB_URL = "http://conveyor.reeinfra.net/view/Release%20Trigger%20Jobs/job/trigger-long-gamma-test-release/api/json"
 
 
 def main(branch: str, machine: str):
@@ -25,19 +27,37 @@ def main(branch: str, machine: str):
     credentials = yaml_loader.load_yaml(
         pathlib.Path(f"{current_dir}/credentials/credentials.yaml").open().read()
     )
-
-    print(job_configuration)
-    print(credentials)
+    response = requests.get(
+        JENKINS_JOB_URL,
+        auth=(credentials["username"], credentials["credentials"]),
+    ).json()
+    curretn_job_url = response["builds"][0]["url"]
+    response = requests.post(
+        curretn_job_url + "stop",
+        auth=(credentials["username"], credentials["credentials"]),
+    )
+    print(response.status_code)
+    print(response.text)
+    print("----" * 10)
+    print("Waiting for 10 seconds to stop the current job")
+    time.sleep(1)
+    for i in range(9, -1, -1):
+        if i > 1:
+            print(f"Time remaining {i} seconds")
+        else:
+            print(f"Time remaining {i} second")
+        time.sleep(1)
+    print("\nDeployment started")
 
     for machine in machines:
         parameters["MACHINE"] = machine
-        r = requests.post(
+        response = requests.post(
             url,
             data=parameters,
             auth=(credentials["username"], credentials["credentials"]),
         )
-        print(r.status_code)
-        print(r.text)
+        print(response.status_code)
+        print(response.text)
 
 
 def parse_args():
