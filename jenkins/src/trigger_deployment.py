@@ -38,7 +38,7 @@ def main(branch: str, machine: str):
     )
     print(response.status_code)
     print(response.text)
-    print("----" * 10)
+    print("-" * 40)
     print("Waiting for 10 seconds to stop the current job")
     time.sleep(1)
     for i in range(9, -1, -1):
