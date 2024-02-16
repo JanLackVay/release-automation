@@ -16,19 +16,11 @@ build_info_url = f"{jenkins_url}{job_name}"
 
 def main():
     current_dir = os.getcwd()
-    credentials = yaml_loader.load_yaml(
-        pathlib.Path(f"{current_dir}/credentials/credentials.yaml").open().read()
-    )
-    last_successful_build = retrieve_logs.get_last_build_information(
-        "Successful", credentials, build_info_url
-    )
+    credentials = yaml_loader.load_yaml(pathlib.Path(f"{current_dir}/credentials/credentials.yaml").open().read())
+    last_successful_build = retrieve_logs.get_last_build_information("Successful", credentials, build_info_url)
 
-    console_log = retrieve_logs.get_console_logs(
-        credentials, last_successful_build, build_info_url
-    )
-    list_of_builds = get_last_3_succesfull_builds(
-        last_successful_build, credentials, build_info_url
-    )
+    console_log = retrieve_logs.get_console_logs(credentials, last_successful_build, build_info_url)
+    list_of_builds = get_last_3_succesfull_builds(last_successful_build, credentials, build_info_url)
 
     all_metrics = collect_metrics(list_of_builds, credentials, build_info_url)
     metrics_average = get_metrics_average(all_metrics)
@@ -112,12 +104,8 @@ def main():
 def get_log_yaml(console_log: str):
     lines = console_log.split("\n")
 
-    start_index = next(
-        (i for i, line in enumerate(lines) if "Yaml output starts" in line), None
-    )
-    end_index = next(
-        (i for i, line in enumerate(lines) if "Yaml output ends" in line), None
-    )
+    start_index = next((i for i, line in enumerate(lines) if "Yaml output starts" in line), None)
+    end_index = next((i for i, line in enumerate(lines) if "Yaml output ends" in line), None)
     # If the pattern is found, create a new multiline string from that line onwards
     if start_index is not None and end_index is not None:
         filtered_multiline_string = "\n".join(lines[start_index + 1 : end_index])
@@ -127,20 +115,32 @@ def get_log_yaml(console_log: str):
     return filtered_multiline_string
 
 
-def get_last_3_succesfull_builds(
-    last_successful_build: int, credentials: Dict[str, str], build_info_url
-):
+def get_last_3_succesfull_builds(last_successful_build: int, credentials: Dict[str, str], build_info_url):
     build_list = []
     build_number = last_successful_build
-    last_branch = retrieve_logs.get_session_information(
-        last_successful_build, credentials, build_info_url
-    )["branch"]
 
-    while len(build_list) < 4:
-        log_information = retrieve_logs.get_session_information(
-            build_number, credentials, build_info_url
-        )
+    max_iterations = 10
+    iterations = 0
 
+    session_info = retrieve_logs.get_session_information(last_successful_build, credentials, build_info_url)
+
+    if session_info["result"] is not None:
+        print(session_info)
+        last_branch = session_info["branch"]
+    else:
+        while iterations < max_iterations:
+            last_successful_build -= 1
+            iterations += 1
+            session_info = retrieve_logs.get_session_information(last_successful_build, credentials, build_info_url)
+            if session_info["result"] is not None:
+                print(session_info)
+                last_branch = session_info["branch"]
+                break
+    print(last_branch)
+
+    while len(build_list) < 1:
+        log_information = retrieve_logs.get_session_information(build_number, credentials, build_info_url)
+        print(log_information["result"])
         if log_information["result"] == "SUCCESS":
             branch = log_information["branch"]
             if last_branch != branch:
@@ -157,14 +157,10 @@ def get_last_3_succesfull_builds(
     return build_list
 
 
-def get_all_branch_builds(
-    branch: str, last_successful_build: int, credentials: Dict[str, str], build_info_url
-):
+def get_all_branch_builds(branch: str, last_successful_build: int, credentials: Dict[str, str], build_info_url):
     build_list = []
     build_number = last_successful_build
-    current_branch = retrieve_logs.get_session_information(
-        last_successful_build, credentials, build_info_url
-    )["branch"]
+    current_branch = retrieve_logs.get_session_information(last_successful_build, credentials, build_info_url)["branch"]
 
     while True:
         if current_branch == branch:
@@ -172,20 +168,11 @@ def get_all_branch_builds(
             break
         build_number -= 1
 
-        if (
-            retrieve_logs.get_session_information(
-                build_number, credentials, build_info_url
-            )
-            != "Error: Couldn't retrieve any information."
-        ):
-            current_branch = retrieve_logs.get_session_information(
-                build_number, credentials, build_info_url
-            )["branch"]
+        if retrieve_logs.get_session_information(build_number, credentials, build_info_url) != "Error: Couldn't retrieve any information.":
+            current_branch = retrieve_logs.get_session_information(build_number, credentials, build_info_url)["branch"]
 
     while True:
-        log_information = retrieve_logs.get_session_information(
-            build_number, credentials, build_info_url
-        )
+        log_information = retrieve_logs.get_session_information(build_number, credentials, build_info_url)
         if log_information == "Error: Couldn't retrieve any information.":
             continue
 
@@ -209,9 +196,7 @@ def get_all_branch_builds(
 def collect_metrics(list_of_builds: list, credentials: Dict[str, str], build_info_url):
     all_metrics = []
     for build in list_of_builds:
-        console_log = retrieve_logs.get_console_logs(
-            credentials, build["build"], build_info_url
-        )
+        console_log = retrieve_logs.get_console_logs(credentials, build["build"], build_info_url)
         metrics_yaml = yaml.safe_load(get_log_yaml(console_log))
         all_metrics.append(metrics_yaml)
     return all_metrics
@@ -229,10 +214,6 @@ def get_metrics_average(all_metrics):
             metrics_average[key][subkey]["threshold"] = metric[key][subkey]["threshold"]
             metrics_average[key][subkey]["value"] = round(key_value / len(all_metrics))
     return metrics_average
-
-
-def get_session_id(build: int):
-    return 0
 
 
 if __name__ == "__main__":
